@@ -7,7 +7,7 @@ API para processamento e visualização de extratos bancários com suporte a mú
 A **Extrato API** é uma aplicação Spring Boot que permite o upload, processamento e visualização de extratos bancários em formato CSV. A aplicação foi desenvolvida com foco em:
 
 - **Processamento de extratos** de diferentes bancos
-- **Validação robusta** de dados monetários
+- **Validação** de dados monetários
 - **Transações atômicas** com rollback automático
 - **Observabilidade completa** com Prometheus, Grafana e Zipkin
 - **Arquitetura HATEOAS** para APIs RESTful
@@ -214,7 +214,7 @@ Verifica a saúde da aplicação.
 - **Campos:** Data, Lançamento, Detalhes, Número do Documento, Valor, Tipo do Lançamento
 - **Valores monetários:** Formato brasileiro (1.234,56)
 
-**Exemplo de arquivo:**
+**Exemplo de arquivo(Baixado do app):**
 ```csv
 Data,Lançamento,Detalhes,Número do Documento,Valor,Tipo do Lançamento
 15/01/2024,SAQUE,SAQUE 24H 001,123456,1234,56,SAQUE
@@ -275,7 +275,7 @@ Relatório disponível em: `target/site/jacoco/index.html`
 
 ## 📈 Próximos Passos
 
-### 🏦 Implementação do Itaú (Prioridade Alta)
+### 🏦 Implementação do Itaú
 
 **Objetivo:** Adicionar suporte ao processamento de extratos do Banco Itaú.
 
@@ -301,29 +301,17 @@ Relatório disponível em: `target/site/jacoco/index.html`
    - Guia de migração
 
 #### Formato Esperado Itaú:
-```csv
-Data,Descrição,Valor,Saldo
-01/01/2024,TRANSFERENCIA PIX,1500.00,5000.00
-02/01/2024,COMPRA CARTAO,-250.75,4749.25
+```pdf
 ```
 
 ### 🔄 Melhorias Futuras
-
-1. **Novos Bancos:**
-   - Bradesco
-   - Santander
-   - Caixa Econômica Federal
-
-2. **Funcionalidades:**
+1. **Funcionalidades:**
    - Categorização automática de transações
    - Relatórios personalizados
-   - Exportação em PDF/Excel
-   - API de webhooks
 
-3. **Performance:**
+2. **Performance:**
    - Processamento assíncrono
    - Cache de consultas
-   - Otimização de queries
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -352,12 +340,3 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📞 Suporte
-
-Para dúvidas ou suporte, entre em contato:
-- **Email:** suporte@extrato-api.com
-- **Issues:** [GitHub Issues](https://github.com/your-repo/extrato-api/issues)
-
----
-
-**Desenvolvido com ❤️ para facilitar o gerenciamento de extratos bancários**
