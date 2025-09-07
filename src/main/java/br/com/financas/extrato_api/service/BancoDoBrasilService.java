@@ -100,7 +100,6 @@ public class BancoDoBrasilService implements ExtratoService {
         metricsService.registrarTempoProcessamento(Duration.ofMillis(duration));
 
         return ProcessamentoResult.sucesso(file.getOriginalFilename(), transacoesSalvas.size());
-
     }
 
     /**

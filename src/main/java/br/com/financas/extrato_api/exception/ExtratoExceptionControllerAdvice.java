@@ -96,4 +96,20 @@ public class ExtratoExceptionControllerAdvice {
                 .details(request.getDescription(false))
                 .build());
     }
+
+    /**
+     * Trata exceções de processamento assíncrono
+     * @param exception exceção de processamento assíncrono
+     * @param request requisição web
+     * @return resposta padronizada de erro
+     */
+    @ExceptionHandler(ProcessamentoAssincronoException.class)
+    public final ResponseEntity<ExceptionResponse> handleProcessamentoAssincronoException(
+            ProcessamentoAssincronoException exception, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ExceptionResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .message(exception.getMessage())
+                .details(request.getDescription(false))
+                .build());
+    }
 }
