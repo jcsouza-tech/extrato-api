@@ -63,7 +63,7 @@ class ExtratoServiceLocatorTest {
         // When & Then
         assertThatThrownBy(() -> serviceLocator.getService(null))
             .isInstanceOf(BancoNaoSuportadoException.class)
-            .hasMessage("Nome do banco não pode ser vazio");
+            .hasMessage("Banco não suportado: Nome do banco não pode ser vazio");
     }
 
     @Test
@@ -72,7 +72,7 @@ class ExtratoServiceLocatorTest {
         // When & Then
         assertThatThrownBy(() -> serviceLocator.getService(""))
             .isInstanceOf(BancoNaoSuportadoException.class)
-            .hasMessage("Nome do banco não pode ser vazio");
+            .hasMessage("Banco não suportado: Nome do banco não pode ser vazio");
     }
 
     @Test
@@ -81,7 +81,7 @@ class ExtratoServiceLocatorTest {
         // When & Then
         assertThatThrownBy(() -> serviceLocator.getService("   "))
             .isInstanceOf(BancoNaoSuportadoException.class)
-            .hasMessage("Nome do banco não pode ser vazio");
+            .hasMessage("Banco não suportado: Nome do banco não pode ser vazio");
     }
 
     @Test
@@ -113,7 +113,7 @@ class ExtratoServiceLocatorTest {
         // When & Then
         assertThatThrownBy(() -> serviceLocator.getService(nomeBanco))
             .isInstanceOf(BancoNaoSuportadoException.class)
-            .hasMessage("Service não encontrado para banco: banco-do-brasil (bean: banco-do-brasil-service)");
+            .hasMessage("Banco não suportado: Service não encontrado para banco: banco-do-brasil (bean: banco-do-brasil-service)");
     }
 
     @Test

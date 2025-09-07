@@ -42,7 +42,7 @@ class ExtratoControllerTest {
     private TransacaoRepresentationAssembler transacaoAssembler;
 
     @InjectMocks
-    private ExtratoController financasController;
+    private ExtratoSyncController financasController;
 
     private MockMvc mockMvc;
 

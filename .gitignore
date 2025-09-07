@@ -92,3 +92,9 @@ yarn-error.log*
 
 # Docker
 .dockerignore
+
+# Markdown files - ignore all except the 3 main ones
+*.md
+!README.md
+!README-OBSERVABILIDADE.md
+!ESTRATEGIA-TESTES.md

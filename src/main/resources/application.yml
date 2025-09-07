@@ -8,6 +8,24 @@ spring:
       max-request-size: 10MB
       file-size-threshold: 2MB
       resolve-lazily: false
+  # Configuração de CORS
+  web:
+    cors:
+      allowed-origins: 
+        - "http://localhost:3000"
+        - "http://localhost:4000"
+        - "http://127.0.0.1:3000"
+        - "http://127.0.0.1:4000"
+      allowed-methods: 
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "DELETE"
+        - "OPTIONS"
+        - "PATCH"
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
   # Configuração do DataSource com HikariCP
   datasource:
     url: jdbc:mysql://mysql:3306/financas_db
@@ -77,6 +95,27 @@ spring:
     default-timeout: 30
   jackson:
     default-property-inclusion: non_null
+  
+  # Configuração do RabbitMQ
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: /
+    connection-timeout: 15000
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          max-interval: 10000
+          multiplier: 2
+        concurrency: 3
+        max-concurrency: 10
+        prefetch: 1
 #Configuração de bancos suportados
 bancos:
   suporte:

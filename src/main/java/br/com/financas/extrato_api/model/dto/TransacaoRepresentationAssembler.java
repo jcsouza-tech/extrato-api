@@ -1,6 +1,6 @@
 package br.com.financas.extrato_api.model.dto;
 
-import br.com.financas.extrato_api.controller.ExtratoController;
+import br.com.financas.extrato_api.controller.ExtratoSyncController;
 import br.com.financas.extrato_api.model.Transacao;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.hateoas.CollectionModel;
@@ -11,20 +11,20 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Classe para tratar a conversão de Transacao para TransacaoHateoasDTO implementando o HATEOAS
+ * Classe para tratar a conversão de Transacao para TransacaoDTO implementando o HATEOAS
  */
 @Component
-public class TransacaoRepresentationAssembler implements RepresentationModelAssembler<Transacao, TransacaoHateoasDTO> {
+public class TransacaoRepresentationAssembler implements RepresentationModelAssembler<Transacao, TransacaoDTO> {
     
     /**
-     * Converte uma entidade Transacao e retorna uma TransacaoHateoasDTO com links HATEOAS
+     * Converte uma entidade Transacao e retorna uma TransacaoDTO com links HATEOAS
      * @param entity entidade Transacao
-     * @return bean TransacaoHateoasDTO com links
+     * @return bean TransacaoDTO com links
      */
     @NotNull
     @Override
-    public TransacaoHateoasDTO toModel(Transacao entity) {
-        TransacaoHateoasDTO dto = TransacaoHateoasDTO.builder()
+    public TransacaoDTO toModel(Transacao entity) {
+        TransacaoDTO dto = TransacaoDTO.builder()
                 .id(entity.getId())
                 .data(entity.getData())
                 .lancamento(entity.getLancamento())
@@ -33,11 +33,12 @@ public class TransacaoRepresentationAssembler implements RepresentationModelAsse
                 .valor(entity.getValor())
                 .tipoLancamento(entity.getTipoLancamento())
                 .categoria(entity.getCategoria())
+                .banco(entity.getBanco())
                 .build();
         
         // Adiciona links HATEOAS
-        dto.add(linkTo(methodOn(ExtratoController.class).visualizarExtrato()).withRel("extrato"));
-        dto.add(linkTo(methodOn(ExtratoController.class).carregarExtrato(null,null)).withRel("carregar"));
+        dto.add(linkTo(methodOn(ExtratoSyncController.class).visualizarExtrato()).withRel("extrato"));
+        dto.add(linkTo(methodOn(ExtratoSyncController.class).carregarExtrato(null,null)).withRel("carregar"));
         
         return dto;
     }
@@ -45,16 +46,16 @@ public class TransacaoRepresentationAssembler implements RepresentationModelAsse
     /**
      * Conversão de uma coleção de Transacoes para CollectionModel com HATEOAS
      * @param entities coleção de entidades
-     * @return CollectionModel<TransacaoHateoasDTO>
+     * @return CollectionModel<TransacaoDTO>
      */
     @NotNull
     @Override
-    public CollectionModel<TransacaoHateoasDTO> toCollectionModel(@NotNull Iterable<? extends Transacao> entities) {
-        CollectionModel<TransacaoHateoasDTO> collectionModel = RepresentationModelAssembler.super.toCollectionModel(entities);
+    public CollectionModel<TransacaoDTO> toCollectionModel(@NotNull Iterable<? extends Transacao> entities) {
+        CollectionModel<TransacaoDTO> collectionModel = RepresentationModelAssembler.super.toCollectionModel(entities);
         
         // Adiciona links para a coleção
-        collectionModel.add(linkTo(methodOn(ExtratoController.class).visualizarExtrato()).withSelfRel());
-        collectionModel.add(linkTo(methodOn(ExtratoController.class).carregarExtrato(null, null)).withRel("carregar"));
+        collectionModel.add(linkTo(methodOn(ExtratoSyncController.class).visualizarExtrato()).withSelfRel());
+        collectionModel.add(linkTo(methodOn(ExtratoSyncController.class).carregarExtrato(null, null)).withRel("carregar"));
         
         return collectionModel;
     }
