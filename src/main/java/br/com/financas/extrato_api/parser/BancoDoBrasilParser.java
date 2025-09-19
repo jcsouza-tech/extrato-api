@@ -1,12 +1,10 @@
 package br.com.financas.extrato_api.parser;
 
 import br.com.financas.extrato_api.config.parser.BancoDoBrasilParserConfig;
+import br.com.financas.extrato_api.config.parser.BankParserConfig;
 import br.com.financas.extrato_api.model.Transacao;
-import br.com.financas.extrato_api.parser.validation.BBValidation;
 import br.com.financas.extrato_api.parser.validation.Validation;
-import br.com.financas.extrato_api.repository.TransacaoRepository;
 import br.com.financas.extrato_api.util.CsvColumn;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +19,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Parser otimizado para Banco do Brasil usando configuração e streams paralelos.
@@ -37,16 +32,12 @@ public class BancoDoBrasilParser implements ExtratoParser {
 
     private final BancoDoBrasilParserConfig config;
     private final DateTimeFormatter dateFormatter;
-    private final List<Pattern> filePatterns;
     private final Validation validation;
     @Autowired
     public BancoDoBrasilParser(BancoDoBrasilParserConfig config, @Qualifier("BBValidation") Validation validation) {
         this.config = config;
         this.dateFormatter = DateTimeFormatter.ofPattern(config.getCsv().getDateFormat());
         this.validation = validation;
-        this.filePatterns = config.getFilePatterns().stream()
-                .map(Pattern::compile)
-                .collect(Collectors.toList());
     }
 
     /**
@@ -105,26 +96,9 @@ public class BancoDoBrasilParser implements ExtratoParser {
         }
     }
 
-    /**
-     * Verifica se o arquivo é suportado pela configuração do do banco
-     * @param fileName nome do arquivo
-     * @return se o arquivo for suporado retorna true
-     */
     @Override
-    public boolean supports(String fileName) {
-        if (fileName == null) return false;
-
-        // Verifica extensão
-        String extension = fileName.contains(".") ?
-                fileName.substring(fileName.lastIndexOf(".")) : "";
-        if (!config.getSupportedExtensions().contains(extension.toLowerCase())) {
-            return false;
-        }
-
-        // Verifica padrões de nome de arquivo
-        String lowerFileName = fileName.toLowerCase();
-        return filePatterns.stream()
-                .anyMatch(pattern -> pattern.matcher(lowerFileName).matches());
+    public BankParserConfig getConfig() {
+        return config;
     }
 
     /** Retorna o nome do banco
