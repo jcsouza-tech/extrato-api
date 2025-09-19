@@ -156,11 +156,19 @@ parser:
         - ".*itau.*\\.pdf$"
         - ".*itáu.*\\.pdf$"
         - ".*itau_.*\\.pdf$"
+        - ".*extrato.*itau.*\\.pdf$"
       supported-extensions: [".pdf"]
       pdf:
         date-format: "dd/MM/yyyy"
         date-regex: "^\\d{2}/\\d{2}/\\d{4}$"
-        value-regex: "^[+-]?\\d{1,3}([.,]\\d{3})*([.,]\\d{1,2})?$"
+        value-regex: "^[+-]?\\d{1,3}([.,]\\d{3})*([.,]\\d{1,2})?$|^[+-]?\\d+([.,]\\d{1,2})?$"
+        # Regex para extrair os 4 campos: data, descrição, data adicional, valor
+        # Aceita qualquer nome de lançamento (maiúsculas, hífens, números, pontos, etc.)
+        # Exclui transações que contenham "saldo"
+        transaction-regex: "(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+([+-]?\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?)(?:\\s+([+-]?\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?))?\\s*$"
+        header-regex: ".*agência:.*|.*conta:.*|.*saldo em conta.*|.*Limite da Conta.*|.*extrato conta.*|.*período de visualização.*|.*data lançamentos valor.*|.*extrato.*conta.*corrente.*|.*banco.*itau.*|.*itau.*banco.*"
+        pais: "BR"
+        idioma: "pt"
         text-extraction:
           sort-by-position: true
           encoding: "UTF-8"
