@@ -4,12 +4,12 @@ services:
     image: mysql:8.0
     container_name: mysql_db
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: financas_db
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: apppassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-financas_db}
+      MYSQL_USER: ${DB_USERNAME:-appuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-apppassword}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -17,13 +17,109 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+    networks:
+      - financas-network
+
+  # RabbitMQ para processamento assíncrono
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - financas-network
+
+  # Spring Cloud Config Server
+  financas-configuration:
+    build:
+      context: ../financas-configuration
+      dockerfile: Dockerfile
+    container_name: financas-configuration
+    ports:
+      - "${CONFIG_SERVER_PORT:-8888}:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-dev}
+      - JAVA_OPTS=${JAVA_OPTS:--Xms512m -Xmx1g}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - financas-network
+    restart: unless-stopped
+
+  # Extrato API
+  extrato-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: extrato-api
+    ports:
+      - "${EXTRATO_API_PORT:-8080}:8080"
+    environment:
+      # Configuração do Config Server
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL:-http://financas-configuration:8888}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-dev}
+      - CONFIG_FAIL_FAST=${CONFIG_FAIL_FAST:-true}
+      - CONFIG_RETRY_MAX_ATTEMPTS=${CONFIG_RETRY_MAX_ATTEMPTS:-10}
+      - CONFIG_RETRY_INITIAL_INTERVAL=${CONFIG_RETRY_INITIAL_INTERVAL:-2000}
+      - CONFIG_RETRY_MAX_INTERVAL=${CONFIG_RETRY_MAX_INTERVAL:-5000}
+      - CONFIG_LABEL=${CONFIG_LABEL:-main}
+      # Banco de dados
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-financas_db}
+      - DB_USERNAME=${DB_USERNAME:-appuser}
+      - DB_PASSWORD=${DB_PASSWORD:-apppassword}
+      # RabbitMQ
+      - RABBITMQ_HOST=${RABBITMQ_HOST:-rabbitmq}
+      - RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
+      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin123}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST:-/}
+      # Observabilidade
+      - ZIPKIN_BASE_URL=${ZIPKIN_BASE_URL:-http://zipkin:9411}
+      # JVM
+      - JAVA_OPTS=${JAVA_OPTS:--Xms512m -Xmx1g}
+      # Logs
+      - LOGGING_LEVEL_ROOT=${LOG_LEVEL:-INFO}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      financas-configuration:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - financas-network
+    restart: unless-stopped
 
   # Stack de observabilidade
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9091}:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -34,15 +130,17 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     depends_on:
-      - mysql
+      - extrato-api
+    networks:
+      - financas-network
 
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
@@ -51,38 +149,25 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
+    networks:
+      - financas-network
 
   zipkin:
     image: openzipkin/zipkin:latest
     container_name: zipkin
     ports:
-      - "9411:9411"
+      - "${ZIPKIN_PORT:-9411}:9411"
     depends_on:
       - mysql
-
-  # RabbitMQ para processamento assíncrono
-  rabbitmq:
-    image: rabbitmq:3.12-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"    # AMQP port
-      - "15672:15672"  # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
-      RABBITMQ_DEFAULT_VHOST: /
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      - mysql
+    networks:
+      - financas-network
 
 volumes:
   mysql_data:
   prometheus_data:
   grafana_data:
   rabbitmq_data:
+
+networks:
+  financas-network:
+    driver: bridge
