@@ -117,7 +117,7 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
 
       - name: Image digest
-        run: echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"
+        run: echo "Image digest:" ${{ steps.build-and-push.outputs.digest }}
 
       - name: Create release summary
         run: |
