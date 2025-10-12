@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.within;
 class ExtratoServiceIntegrationTest {
 
     @Autowired
+    @Qualifier("banco-do-brasil-service")
     private ExtratoService extratoService;
 
     @Autowired
