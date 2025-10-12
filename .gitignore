@@ -98,3 +98,8 @@ yarn-error.log*
 !README.md
 !README-OBSERVABILIDADE.md
 !ESTRATEGIA-TESTES.md
+
+# Environment variables
+.env
+.env.*
+.env.backup.*
