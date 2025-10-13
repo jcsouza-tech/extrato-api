@@ -1,11 +1,12 @@
 # ========================================
 # Dockerfile Otimizado - Versão 1: Spring Boot Layers
 # Reduz rebuilds usando camadas do Spring Boot
-# Tamanho estimado: ~200-250MB
+# Suporta múltiplas arquiteturas (amd64, arm64)
+# Tamanho estimado: ~300-350MB
 # ========================================
 
 # Stage 1: Build
-FROM maven:3.9-eclipse-temurin-17-alpine AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
 # Copiar apenas pom.xml primeiro para cache de dependências
@@ -21,13 +22,16 @@ RUN mkdir -p target/extracted && \
     java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre AS runtime
 
-# Instalar apenas o essencial para healthcheck
-RUN apk add --no-cache curl
+# Instalar curl para healthcheck
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Criar usuário não-root
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN groupadd -r spring && useradd -r -g spring spring
 
 WORKDIR /app
 

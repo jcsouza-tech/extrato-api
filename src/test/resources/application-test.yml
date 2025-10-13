@@ -1,4 +1,9 @@
 spring:
+  config:
+    import: "optional:file:./"  # Sobrescreve import do config server para testes
+  cloud:
+    config:
+      enabled: false  # Desabilita config server nos testes
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driverClassName: org.h2.Driver
@@ -47,3 +52,55 @@ observability:
     enabled: true
   tracing:
     enabled: false  # Desabilitado para testes unitários
+
+# Configuração de Bancos Suportados
+bancos:
+  suporte:
+    names:
+      - "banco-do-brasil"
+      - "itau"
+
+# Configuração dos Parsers de Extrato
+parser:
+  auto-discovery:
+    base-package: "br.com.financas.extrato_api.parser"
+    enabled: true
+    scan-depth: 2
+  config:
+    banco-do-brasil:
+      name: "Banco do Brasil"
+      file-patterns:
+        - ".*bb.*\\.csv$"
+        - ".*banco.*brasil.*\\.csv$"
+      supported-extensions: [".csv"]
+      csv:
+        separator: ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
+        date-format: "dd/MM/yyyy"
+        date-regex: "^\\d{2}/\\d{2}/\\d{4}$"
+        value-regex: "^[+-]?\\d{1,3}([.,]\\d{3})*([.,]\\d{1,2})?$|^[+-]?\\d+([.,]\\d{1,2})?$"
+        skip-line: 1
+        pais: "BR"
+        idioma: "pt"
+    itau:
+      name: "Itaú"
+      file-patterns:
+        - ".*itau.*\\.pdf$"
+        - ".*\\.pdf$"
+      supported-extensions: [".pdf"]
+      pdf:
+        date-format: "dd/MM/yyyy"
+        date-regex: "^\\d{2}/\\d{2}/\\d{4}$"
+        value-regex: "^[+-]?\\d{1,3}([.,]\\d{3})*([.,]\\d{1,2})?$|^[+-]?\\d+([.,]\\d{1,2})?$"
+        transaction-regex: "(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+([+-]?\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?)(?:\\s+([+-]?\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?))?\\s*$"
+        header-regex: ".*agência:.*|.*conta:.*|.*saldo em conta.*"
+        pais: "BR"
+        idioma: "pt"
+        text-extraction:
+          sort-by-position: true
+          encoding: "UTF-8"
+  general:
+    parallel-processing: true
+    batch-size: 1000
+    validation:
+      strict-file-type: true
+      max-file-size-mb: 50
