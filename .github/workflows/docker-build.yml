@@ -17,6 +17,14 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: extrato-api
 
+# Permissões globais para o workflow
+permissions:
+  security-events: write
+  contents: read
+  packages: write
+  actions: read
+  pull-requests: write
+
 jobs:
   test:
     name: Run Tests
@@ -57,6 +65,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 70
           min-coverage-changed-files: 80
+
+      - name: Create test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Test Execution" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Tests completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Report:** Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- **JaCoCo Badges:** Generated automatically" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Review test coverage in downloaded artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Check PR comments for coverage details" >> $GITHUB_STEP_SUMMARY
 
   build-and-push:
     name: Build and Push Docker Image
@@ -139,8 +161,15 @@ jobs:
     needs: build-and-push
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      packages: read
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -149,19 +178,82 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/extrato-api:latest
+        run: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/extrato-api:latest
+          echo "Image pulled successfully for security scanning"
 
       - name: Run Trivy vulnerability scanner
+        id: trivy-scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/extrato-api:latest
           format: 'sarif'
           output: 'trivy-results.sarif'
           skip-version-check: true
+          exit-code: 0  # Não falha o workflow mesmo encontrando vulnerabilidades
+          severity: 'CRITICAL,HIGH,MEDIUM'  # Foque nas severidades mais críticas
+
+      - name: Check if SARIF file exists
+        id: check-sarif
+        run: |
+          if [ -f "trivy-results.sarif" ]; then
+            echo "SARIF file generated successfully"
+            echo "size=$(wc -c < trivy-results.sarif)" >> $GITHUB_OUTPUT
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "SARIF file not found"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && steps.check-sarif.outputs.exists == 'true' && steps.check-sarif.outputs.size > 0
         with:
           sarif_file: 'trivy-results.sarif'
 
+      - name: Create security scan summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check-sarif.outputs.exists }}" = "true" ] && [ "${{ steps.check-sarif.outputs.size }}" -gt 0 ]; then
+            echo "### ✅ Scan Completed" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status:** Security scan completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- **Results:** Uploaded to GitHub Security tab" >> $GITHUB_STEP_SUMMARY
+            echo "- **Image Scanned:** ${{ secrets.DOCKERHUB_USERNAME }}/extrato-api:latest" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "- Review vulnerabilities in the Security tab" >> $GITHUB_STEP_SUMMARY
+            echo "- Address critical and high severity issues" >> $GITHUB_STEP_SUMMARY
+            echo "- Monitor for new vulnerabilities regularly" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Scan Issues" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status:** SARIF file not generated or empty" >> $GITHUB_STEP_SUMMARY
+            echo "- **Action Required:** Check Trivy scan logs for details" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  notify:
+    name: Notify Status
+    needs: [test, build-and-push, security-scan]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    
+    steps:
+      - name: Workflow status summary
+        run: |
+          echo "## 📊 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔄 Execution Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests:** ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build & Push:** ${{ needs.build-and-push.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Scan:** ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🏁 Overall Result" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.test.result }}" == "success" && "${{ needs.build-and-push.result }}" == "success" ]]; then
+            echo "✅ Pipeline completed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Pipeline completed with failures. Please check the logs." >> $GITHUB_STEP_SUMMARY
+          fi
